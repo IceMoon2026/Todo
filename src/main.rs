@@ -5,25 +5,17 @@ use serde::{ Serialize, Deserialize };
 #[derive(Serialize, Deserialize, Debug)]
 struct Task {
     name: String,
+    done: bool,
 }
 
 fn main() {
-    // Test code
-    // let data = r#"[
-    //     {"name": "吃饭"},
-    //     {"name": "睡觉"}
-    // ]"#;
-    // let tasks: Vec<Task> = serde_json::from_str(data).expect("JSON was not well-formatted");
-    // println!("{:?}", tasks);
-
-
     let path = "./task_list.json";
     if !Path::new(path).exists() {
         fs::write(path, "[]").expect("Write failed!");
     }
 
     let contents = fs::read_to_string(path);
-    let mut tasks: Vec<String> = serde_json::from_str(contents.unwrap().as_str()).unwrap();
+    let mut tasks: Vec<Task> = serde_json::from_str(contents.unwrap().as_str()).unwrap();
 
     let matches = command!() // requires `cargo` feature
         .propagate_version(true)
@@ -47,20 +39,28 @@ fn main() {
     match matches.subcommand() {
         Some(("add", sub_matches)) => {
             let task_id: String = sub_matches.get_one::<String>("TaskID").unwrap().to_string();
-            tasks.push(String::from(task_id));
+            tasks.push(Task {name:String::from(task_id), done:false});
             let result = serde_json::to_string(&tasks);
-            println!("{:?}", result);
             fs::write("task_list.json", result.unwrap()).unwrap();
         },
         Some(("list", _)) => {
-            for task_id in tasks {
-                println!("{}", task_id);
+            for num in 0..tasks.len() {
+                let have_done: bool = tasks[num].done;
+                let have_done = if have_done { "已完成" } else { "未完成" };
+                println!("[{}] - {} ({})",  num, tasks[num].name, have_done);
             }
         },
         Some(("done", sub_matches)) => {
             let task_no: String = sub_matches.get_one::<String>("TaskNo").unwrap().to_string();
-            let task_no = task_no.parse::<i32>().unwrap();
-            println!("{}", task_no)
+            let task_no = task_no.parse::<usize>().unwrap();
+            if task_no < tasks.len() {
+                tasks[task_no].done = true;
+                println!("[{}] - {} ({})",  task_no, tasks[task_no].name, "已完成");
+                let result = serde_json::to_string(&tasks);
+                fs::write("task_list.json", result.unwrap()).unwrap();
+            } else {
+                eprintln!("Task {} not found", task_no);
+            }
         }
         _ => unreachable!("Exhausted list of subcommands and subcommand_required prevents `None`"),
     }
