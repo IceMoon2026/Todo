@@ -86,8 +86,8 @@ fn main() {
                 if task.done {
                     display_name = display_name.strikethrough().to_string();
                 }
-                let status = if task.done { "✅" } else { " " };
-                println!("{} [{}] {}", i + 1, status, task.name);
+                let status = if task.done { "√" } else { " " };
+                println!("{} [{}] {}", i + 1, status, display_name);
             }
         }
         Commands::Done { id } => {
